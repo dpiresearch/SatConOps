@@ -10,6 +10,8 @@ from flask import (Flask, render_template, request, send_file, jsonify,
                    after_this_request)
 
 from conops_pdf import generate_conops_pdf
+from timeline_generator import generate_timeline
+from timeline_pdf import generate_timeline_pdf
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -111,6 +113,24 @@ def generate():
     output_path = os.path.join(OUTPUT_DIR, filename)
 
     generate_conops_pdf(mission, output_path)
+
+    response = send_file(output_path, as_attachment=True, download_name=filename)
+    response.headers["X-Download-Complete"] = "true"
+    return response
+
+
+@app.route("/timeline", methods=["POST"])
+def timeline():
+    mission = {}
+    for key in DEFAULT_MISSION:
+        mission[key] = request.form.get(key, DEFAULT_MISSION[key])
+
+    timeline_data = generate_timeline(mission)
+
+    filename = f"Timeline_{mission['mission_name'].replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    output_path = os.path.join(OUTPUT_DIR, filename)
+
+    generate_timeline_pdf(mission, timeline_data, output_path)
 
     response = send_file(output_path, as_attachment=True, download_name=filename)
     response.headers["X-Download-Complete"] = "true"

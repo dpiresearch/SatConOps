@@ -473,10 +473,17 @@
 
             <!-- Submit -->
             <div class="submit-section">
-                <button type="submit" class="submit-btn" id="submitBtn">Generate ConOps PDF</button>
+                <div style="display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap;">
+                    <button type="submit" class="submit-btn" id="submitBtn" onclick="setFormAction('/generate')">Generate ConOps PDF</button>
+                    <button type="submit" class="submit-btn" id="timelineBtn" onclick="setFormAction('/timeline')" style="background: linear-gradient(135deg, #1a237e, #3949ab);">Generate Mission Timeline</button>
+                </div>
                 <div class="spinner" id="spinner"></div>
                 <div class="gen-status" id="genStatus">Generating PDF... This may take a few seconds.</div>
                 <div class="gen-success" id="genSuccess">PDF generated and downloading!</div>
+                <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-light);">
+                    <b>ConOps PDF</b> — Full Concept of Operations document with diagrams, tables, and regulatory sections.<br>
+                    <b>Mission Timeline</b> — Project schedule with Gantt chart, launch vehicle analysis, and completion probability.
+                </p>
             </div>
         </form>
 
@@ -532,29 +539,26 @@
             }
         }
 
-        /* ── Spinner bug fix ──
-           The form opens the PDF in a new tab (target="_blank").
-           We detect the form submission, show the spinner briefly,
-           then reset it after a short delay. The browser handles
-           the download in the new tab, so the main page stays usable. */
+        function setFormAction(action) {
+            document.getElementById('conopsForm').action = action;
+        }
+
         document.getElementById('conopsForm').addEventListener('submit', function(e) {
-            var btn = document.getElementById('submitBtn');
+            var conopsBtn = document.getElementById('submitBtn');
+            var timelineBtn = document.getElementById('timelineBtn');
             var spinner = document.getElementById('spinner');
             var status = document.getElementById('genStatus');
             var success = document.getElementById('genSuccess');
 
-            btn.disabled = true;
-            btn.textContent = 'Generating...';
+            conopsBtn.disabled = true;
+            timelineBtn.disabled = true;
             spinner.style.display = 'block';
             status.style.display = 'block';
             success.style.display = 'none';
 
-            /* Re-enable after a generous timeout.
-               The form targets _blank, so the PDF opens/downloads
-               in a new tab — we just need to reset our UI. */
             setTimeout(function() {
-                btn.disabled = false;
-                btn.textContent = 'Generate ConOps PDF';
+                conopsBtn.disabled = false;
+                timelineBtn.disabled = false;
                 spinner.style.display = 'none';
                 status.style.display = 'none';
                 success.style.display = 'block';
