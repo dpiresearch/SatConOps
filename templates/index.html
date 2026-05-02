@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satellite ConOps Generator</title>
+    <style>
+        :root {
+            --primary: #1a237e;
+            --primary-light: #3949ab;
+            --accent: #ff6f00;
+            --bg: #f5f5f5;
+            --card: #ffffff;
+            --text: #212121;
+            --text-light: #546e7a;
+            --border: #e0e0e0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg); color: var(--text); line-height: 1.6;
+        }
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white; padding: 2rem 0; text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .header p { opacity: 0.9; font-size: 1.05rem; max-width: 700px; margin: 0 auto; }
+        .badges { display: flex; justify-content: center; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
+        .badge {
+            background: rgba(255,255,255,0.15); padding: 0.3rem 0.8rem;
+            border-radius: 20px; font-size: 0.8rem; font-weight: 500;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        .container { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
+        .info-bar {
+            background: #e8eaf6; border-left: 4px solid var(--primary);
+            padding: 1rem 1.5rem; margin-bottom: 2rem; border-radius: 0 4px 4px 0; font-size: 0.95rem;
+        }
+        .info-bar strong { color: var(--primary); }
+        form { display: flex; flex-direction: column; gap: 1.5rem; }
+        .section {
+            background: var(--card); border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08); overflow: hidden;
+        }
+        .section-header {
+            background: var(--primary); color: white; padding: 0.8rem 1.5rem;
+            font-size: 1.05rem; font-weight: 600; cursor: pointer;
+            display: flex; justify-content: space-between; align-items: center; user-select: none;
+        }
+        .section-header:hover { background: var(--primary-light); }
+        .section-header .toggle { font-size: 1.2rem; transition: transform 0.2s; }
+        .section-header.collapsed .toggle { transform: rotate(-90deg); }
+        .section-body {
+            padding: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+        }
+        .section-body.collapsed { display: none; }
+        .field { display: flex; flex-direction: column; }
+        .field.full { grid-column: 1 / -1; }
+        .field label {
+            font-size: 0.85rem; font-weight: 600; color: var(--text-light);
+            margin-bottom: 0.3rem; text-transform: uppercase; letter-spacing: 0.03em;
+        }
+        .field input, .field select, .field textarea {
+            padding: 0.6rem 0.8rem; border: 1px solid var(--border); border-radius: 4px;
+            font-size: 0.95rem; font-family: inherit; background: white;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .field input:focus, .field select:focus, .field textarea:focus {
+            outline: none; border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(57, 73, 171, 0.15);
+        }
+        .field textarea { resize: vertical; min-height: 80px; }
+        .field .hint { font-size: 0.78rem; color: var(--text-light); margin-top: 0.2rem; font-style: italic; }
+        .submit-section { text-align: center; padding: 2rem 0; }
+        .submit-btn {
+            background: linear-gradient(135deg, var(--accent), #e65100);
+            color: white; border: none; padding: 1rem 3rem; font-size: 1.15rem;
+            font-weight: 700; border-radius: 6px; cursor: pointer;
+            box-shadow: 0 2px 8px rgba(230, 81, 0, 0.3);
+            text-transform: uppercase; letter-spacing: 0.05em;
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+        .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(230, 81, 0, 0.4); }
+        .submit-btn:active { transform: translateY(0); }
+        .submit-btn:disabled { background: #bdbdbd; cursor: wait; box-shadow: none; }
+        .spinner {
+            display: none; margin: 1rem auto; width: 40px; height: 40px;
+            border: 4px solid var(--border); border-top-color: var(--primary);
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .gen-status { display: none; margin-top: 1rem; font-size: 0.95rem; color: var(--text-light); }
+        .gen-success {
+            display: none; margin-top: 1rem; font-size: 1rem; color: #2e7d32; font-weight: 600;
+        }
+        .footer {
+            text-align: center; padding: 2rem 0; color: var(--text-light);
+            font-size: 0.85rem; border-top: 1px solid var(--border); margin-top: 2rem;
+        }
+        .footer a { color: var(--primary-light); }
+        .references {
+            background: var(--card); border-radius: 8px; padding: 1.5rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .references h3 { color: var(--primary); margin-bottom: 0.8rem; font-size: 1rem; }
+        .references ul { list-style: none; font-size: 0.85rem; color: var(--text-light); }
+        .references ul li { padding: 0.2rem 0; }
+        .references ul li::before { content: "\2022 "; color: var(--primary); font-weight: bold; }
+        .sat-class-info {
+            background: #fff3e0; border-left: 4px solid var(--accent);
+            padding: 0.8rem 1.2rem; margin-top: 0.5rem; border-radius: 0 4px 4px 0;
+            font-size: 0.88rem; display: none;
+        }
+        @media (max-width: 768px) {
+            .section-body { grid-template-columns: 1fr; }
+            .header h1 { font-size: 1.5rem; }
+            .container { padding: 0 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Satellite ConOps Generator</h1>
+        <p>Generate FCC-compliant Concept of Operations documents for any satellite mission</p>
+        <div class="badges">
+            <span class="badge">All Satellite Classes</span>
+            <span class="badge">FCC Part 25 / Part 97</span>
+            <span class="badge">ANSI/AIAA G-043A-2012</span>
+            <span class="badge">IEEE 1362-1998</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="info-bar">
+            <strong>How it works:</strong> Fill in your satellite mission parameters below. The tool generates
+            a professional ConOps PDF with all sections required for FCC filing — including diagrams, link budget
+            analysis, power budget charts, tables, and regulatory cross-reference matrices. Supports CubeSats,
+            SmallSats, medium satellites, large GEO platforms, and everything in between.
+        </div>
+
+        <form id="conopsForm" action="/generate" method="POST" target="_blank">
+
+            <!-- Mission Identity -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>Mission Identity</span><span class="toggle">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="field">
+                        <label>Mission Name *</label>
+                        <input type="text" name="mission_name" value="{{ mission.mission_name }}" required placeholder="e.g., EarthWatch-1">
+                    </div>
+                    <div class="field">
+                        <label>Organization *</label>
+                        <input type="text" name="organization" value="{{ mission.organization }}" required placeholder="e.g., Acme Space Corp">
+                    </div>
+                    <div class="field">
+                        <label>Author / Team</label>
+                        <input type="text" name="author" value="{{ mission.author }}" placeholder="e.g., Systems Engineering Team">
+                    </div>
+                    <div class="field">
+                        <label>Document Version</label>
+                        <input type="text" name="version" value="{{ mission.version }}">
+                    </div>
+                    <div class="field full">
+                        <label>Mission Description</label>
+                        <textarea name="mission_description" rows="3" placeholder="Leave blank to auto-generate from other fields">{{ mission.mission_description }}</textarea>
+                        <span class="hint">Leave empty for auto-generation based on your other inputs</span>
+                    </div>
+                    <div class="field full">
+                        <label>Mission Objectives (one per line)</label>
+                        <textarea name="objectives" rows="3" placeholder="e.g., Provide global maritime AIS tracking&#10;Demonstrate inter-satellite link technology">{{ mission.objectives }}</textarea>
+                    </div>
+                    <div class="field full">
+                        <label>Success Criteria (one per line)</label>
+                        <textarea name="success_criteria" rows="3" placeholder="e.g., Achieve stable orbit within 48 hours&#10;Complete 6 months of payload operations">{{ mission.success_criteria }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Satellite / Spacecraft Configuration -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>Spacecraft Configuration</span><span class="toggle">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="field">
+                        <label>Satellite Class *</label>
+                        <select name="satellite_class" id="satClass" onchange="updateClassInfo()">
+                            <option value="CubeSat" {{ 'selected' if mission.satellite_class == 'CubeSat' }}>CubeSat (1-24 kg)</option>
+                            <option value="Microsatellite" {{ 'selected' if mission.satellite_class == 'Microsatellite' }}>Microsatellite (10-100 kg)</option>
+                            <option value="Small Satellite" {{ 'selected' if mission.satellite_class == 'Small Satellite' }}>Small Satellite (100-500 kg)</option>
+                            <option value="Medium Satellite" {{ 'selected' if mission.satellite_class == 'Medium Satellite' }}>Medium Satellite (500-1000 kg)</option>
+                            <option value="Large Satellite" {{ 'selected' if mission.satellite_class == 'Large Satellite' }}>Large Satellite (> 1000 kg)</option>
+                            <option value="GEO Communications" {{ 'selected' if mission.satellite_class == 'GEO Communications' }}>GEO Communications Satellite</option>
+                            <option value="Science / Exploration" {{ 'selected' if mission.satellite_class == 'Science / Exploration' }}>Science / Exploration</option>
+                        </select>
+                    </div>
+                    <div class="field" id="formFactorField">
+                        <label>CubeSat Form Factor</label>
+                        <select name="form_factor">
+                            <option value="1U" {{ 'selected' if mission.form_factor == '1U' }}>1U</option>
+                            <option value="1.5U" {{ 'selected' if mission.form_factor == '1.5U' }}>1.5U</option>
+                            <option value="2U" {{ 'selected' if mission.form_factor == '2U' }}>2U</option>
+                            <option value="3U" {{ 'selected' if mission.form_factor == '3U' }}>3U</option>
+                            <option value="6U" {{ 'selected' if mission.form_factor == '6U' }}>6U</option>
+                            <option value="12U" {{ 'selected' if mission.form_factor == '12U' }}>12U</option>
+                            <option value="16U" {{ 'selected' if mission.form_factor == '16U' }}>16U</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Spacecraft Mass (kg) *</label>
+                        <input type="number" name="spacecraft_mass" value="{{ mission.spacecraft_mass }}" step="0.1" min="0.1" required placeholder="e.g., 4.0">
+                    </div>
+                    <div class="field">
+                        <label>Dimensions</label>
+                        <input type="text" name="dimensions" value="{{ mission.dimensions }}" placeholder="e.g., 10 x 10 x 34 cm">
+                    </div>
+                    <div class="field">
+                        <label>Mission Lifetime (years) *</label>
+                        <input type="number" name="mission_lifetime" value="{{ mission.mission_lifetime }}" step="0.5" min="0.5" required placeholder="e.g., 3">
+                    </div>
+                    <div class="field">
+                        <label>Target Launch Date</label>
+                        <input type="text" name="target_launch_date" value="{{ mission.target_launch_date }}" placeholder="e.g., 2027-Q3">
+                    </div>
+                    <div class="field">
+                        <label>Launch Provider</label>
+                        <input type="text" name="launch_provider" value="{{ mission.launch_provider }}" placeholder="e.g., SpaceX Rideshare">
+                    </div>
+                    <div class="field">
+                        <label>ADCS</label>
+                        <input type="text" name="adcs" value="{{ mission.adcs }}" placeholder="e.g., 3-axis stabilized (reaction wheels + star tracker)">
+                    </div>
+                    <div class="field full">
+                        <label>Propulsion System</label>
+                        <input type="text" name="propulsion" value="{{ mission.propulsion }}" placeholder="e.g., Hall-effect thruster, 200 m/s delta-V">
+                    </div>
+                    <div class="field">
+                        <label>Power System</label>
+                        <input type="text" name="power_system" value="{{ mission.power_system }}" placeholder="e.g., Deployable solar arrays + Li-ion battery">
+                    </div>
+                    <div class="field">
+                        <label>Peak Power Generation (W)</label>
+                        <input type="number" name="power_generation" value="{{ mission.power_generation }}" step="0.1" placeholder="e.g., 20">
+                    </div>
+                    <div class="field">
+                        <label>Battery Capacity (Wh)</label>
+                        <input type="number" name="battery_capacity" value="{{ mission.battery_capacity }}" step="0.1" placeholder="e.g., 40">
+                    </div>
+                    <div class="field">
+                        <label>On-Board Computer</label>
+                        <input type="text" name="obc" value="{{ mission.obc }}" placeholder="e.g., Radiation-hardened ARM processor">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payload -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>Payload</span><span class="toggle">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="field">
+                        <label>Payload Type *</label>
+                        <input type="text" name="payload_type" value="{{ mission.payload_type }}" required placeholder="e.g., SAR Radar, Optical Camera, AIS Receiver">
+                    </div>
+                    <div class="field">
+                        <label>Payload Purpose</label>
+                        <input type="text" name="payload_purpose" value="{{ mission.payload_purpose }}" placeholder="e.g., Maritime domain awareness">
+                    </div>
+                    <div class="field full">
+                        <label>Payload Description</label>
+                        <textarea name="payload_description" rows="3" placeholder="Leave blank for auto-generation">{{ mission.payload_description }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Orbit Parameters -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>Orbit Parameters</span><span class="toggle">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="field">
+                        <label>Orbit Type</label>
+                        <select name="orbit_type" id="orbitType" onchange="updateOrbitInfo()">
+                            <option value="Sun-Synchronous (SSO)">Sun-Synchronous (SSO)</option>
+                            <option value="Low Earth Orbit (LEO)">Low Earth Orbit (LEO)</option>
+                            <option value="Polar">Polar</option>
+                            <option value="Equatorial LEO">Equatorial LEO</option>
+                            <option value="ISS Orbit (51.6deg)">ISS Orbit (51.6°)</option>
+                            <option value="Medium Earth Orbit (MEO)">Medium Earth Orbit (MEO)</option>
+                            <option value="Geostationary (GEO)">Geostationary (GEO)</option>
+                            <option value="Geosynchronous (GSO)">Geosynchronous (GSO)</option>
+                            <option value="Highly Elliptical (HEO)">Highly Elliptical (HEO)</option>
+                            <option value="Molniya">Molniya</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Altitude (km) *</label>
+                        <input type="number" name="orbit_altitude" value="{{ mission.orbit_altitude }}" min="160" max="42000" step="1" required placeholder="e.g., 550">
+                    </div>
+                    <div class="field">
+                        <label>Inclination (deg) *</label>
+                        <input type="number" name="orbit_inclination" value="{{ mission.orbit_inclination }}" min="0" max="180" step="0.1" required placeholder="e.g., 97.4">
+                    </div>
+                    <div class="field">
+                        <label>Eccentricity</label>
+                        <input type="text" name="eccentricity" value="{{ mission.eccentricity }}">
+                    </div>
+                    <div class="field">
+                        <label>RAAN</label>
+                        <input type="text" name="raan" value="{{ mission.raan }}">
+                    </div>
+                    <div class="field">
+                        <label>LTAN (if SSO)</label>
+                        <input type="text" name="ltan" value="{{ mission.ltan }}" placeholder="e.g., 10:30 AM">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Communications -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>Communication Architecture</span><span class="toggle">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="field">
+                        <label>Communication System</label>
+                        <input type="text" name="comm_system" value="{{ mission.comm_system }}" placeholder="e.g., UHF transceiver, X-band transmitter">
+                    </div>
+                    <div class="field">
+                        <label>Uplink Frequency</label>
+                        <input type="text" name="uplink_freq" value="{{ mission.uplink_freq }}" placeholder="e.g., 435.000 MHz">
+                    </div>
+                    <div class="field">
+                        <label>Downlink Frequency</label>
+                        <input type="text" name="downlink_freq" value="{{ mission.downlink_freq }}" placeholder="e.g., 437.000 MHz">
+                    </div>
+                    <div class="field">
+                        <label>Uplink Bandwidth</label>
+                        <input type="text" name="uplink_bw" value="{{ mission.uplink_bw }}" placeholder="e.g., 25 kHz">
+                    </div>
+                    <div class="field">
+                        <label>Downlink Bandwidth</label>
+                        <input type="text" name="downlink_bw" value="{{ mission.downlink_bw }}" placeholder="e.g., 25 kHz">
+                    </div>
+                    <div class="field">
+                        <label>Modulation</label>
+                        <select name="modulation">
+                            <option value="GMSK" {{ 'selected' if mission.modulation == 'GMSK' }}>GMSK</option>
+                            <option value="BPSK" {{ 'selected' if mission.modulation == 'BPSK' }}>BPSK</option>
+                            <option value="QPSK" {{ 'selected' if mission.modulation == 'QPSK' }}>QPSK</option>
+                            <option value="OQPSK" {{ 'selected' if mission.modulation == 'OQPSK' }}>OQPSK</option>
+                            <option value="8PSK" {{ 'selected' if mission.modulation == '8PSK' }}>8PSK</option>
+                            <option value="FSK" {{ 'selected' if mission.modulation == 'FSK' }}>FSK</option>
+                            <option value="AFSK" {{ 'selected' if mission.modulation == 'AFSK' }}>AFSK</option>
+                            <option value="DVB-S2" {{ 'selected' if mission.modulation == 'DVB-S2' }}>DVB-S2</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Data Rate (bps)</label>
+                        <input type="number" name="data_rate" value="{{ mission.data_rate }}" min="50" max="10000000000" placeholder="e.g., 9600">
+                    </div>
+                    <div class="field">
+                        <label>Protocol</label>
+                        <select name="protocol">
+                            <option value="AX.25" {{ 'selected' if mission.protocol == 'AX.25' }}>AX.25</option>
+                            <option value="CCSDS" {{ 'selected' if mission.protocol == 'CCSDS' }}>CCSDS</option>
+                            <option value="DVB-S2" {{ 'selected' if mission.protocol == 'DVB-S2' }}>DVB-S2</option>
+                            <option value="Custom" {{ 'selected' if mission.protocol == 'Custom' }}>Custom</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>EIRP (dBm or dBW)</label>
+                        <input type="text" name="eirp" value="{{ mission.eirp }}" placeholder="e.g., 30 dBm">
+                    </div>
+                    <div class="field">
+                        <label>Polarization</label>
+                        <select name="polarization">
+                            <option value="RHCP" {{ 'selected' if mission.polarization == 'RHCP' }}>RHCP</option>
+                            <option value="LHCP" {{ 'selected' if mission.polarization == 'LHCP' }}>LHCP</option>
+                            <option value="Linear (V)" {{ 'selected' if mission.polarization == 'Linear (V)' }}>Linear (V)</option>
+                            <option value="Linear (H)" {{ 'selected' if mission.polarization == 'Linear (H)' }}>Linear (H)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ground Segment -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>Ground Segment</span><span class="toggle">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="field">
+                        <label>Ground Station Name</label>
+                        <input type="text" name="ground_station" value="{{ mission.ground_station }}" placeholder="e.g., Primary GS">
+                    </div>
+                    <div class="field">
+                        <label>GS Location</label>
+                        <input type="text" name="gs_location" value="{{ mission.gs_location }}" placeholder="e.g., Boulder, CO (40.0N, 105.3W)">
+                    </div>
+                    <div class="field">
+                        <label>GS Antenna</label>
+                        <input type="text" name="gs_antenna" value="{{ mission.gs_antenna }}" placeholder="e.g., 3m parabolic dish">
+                    </div>
+                    <div class="field">
+                        <label>GS Radio / Modem</label>
+                        <input type="text" name="gs_radio" value="{{ mission.gs_radio }}" placeholder="e.g., SDR-based transceiver">
+                    </div>
+                    <div class="field">
+                        <label>GS Tx Power</label>
+                        <input type="text" name="gs_tx_power" value="{{ mission.gs_tx_power }}" placeholder="e.g., 50 W">
+                    </div>
+                    <div class="field">
+                        <label>Spacecraft Tx Power</label>
+                        <input type="text" name="sc_tx_power" value="{{ mission.sc_tx_power }}" placeholder="e.g., 2 W">
+                    </div>
+                    <div class="field">
+                        <label>GS Antenna Gain</label>
+                        <input type="text" name="gs_ant_gain" value="{{ mission.gs_ant_gain }}" placeholder="e.g., 14 dBi">
+                    </div>
+                    <div class="field">
+                        <label>SC Antenna Gain</label>
+                        <input type="text" name="sc_ant_gain" value="{{ mission.sc_ant_gain }}" placeholder="e.g., 0 dBi">
+                    </div>
+                    <div class="field">
+                        <label>Passes per Day</label>
+                        <input type="number" name="passes_per_day" value="{{ mission.passes_per_day }}" min="1" max="50">
+                    </div>
+                    <div class="field">
+                        <label>Avg Pass Duration (min)</label>
+                        <input type="number" name="avg_pass_duration" value="{{ mission.avg_pass_duration }}" min="1" max="60">
+                    </div>
+                    <div class="field">
+                        <label>Daily Data Generated</label>
+                        <input type="text" name="daily_data_gen" value="{{ mission.daily_data_gen }}" placeholder="e.g., 500 MB">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Regulatory -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>Regulatory &amp; Disposal</span><span class="toggle">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="field">
+                        <label>FCC License Type</label>
+                        <select name="fcc_license_type">
+                            <option value="Part 25.122 (Streamlined Small Satellite)" {{ 'selected' if '25.122' in mission.fcc_license_type }}>Part 25.122 — Streamlined Small Satellite</option>
+                            <option value="Part 25.114 (Standard Application)" {{ 'selected' if '25.114' in mission.fcc_license_type }}>Part 25.114 — Standard Application</option>
+                            <option value="Part 97 (Amateur Radio)" {{ 'selected' if '97' in mission.fcc_license_type }}>Part 97 — Amateur Radio</option>
+                            <option value="Part 5 (Experimental)" {{ 'selected' if 'Part 5' in mission.fcc_license_type }}>Part 5 — Experimental</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Disposal Method</label>
+                        <select name="disposal_method">
+                            <option value="Atmospheric reentry (uncontrolled) — natural drag">Natural drag (uncontrolled reentry)</option>
+                            <option value="Propulsive deorbit (controlled reentry)">Propulsive deorbit (controlled)</option>
+                            <option value="Drag augmentation device">Drag augmentation device</option>
+                            <option value="Graveyard orbit (GEO only)">Graveyard orbit (GEO)</option>
+                            <option value="Direct reentry (targeted)">Direct reentry (targeted)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="submit-section">
+                <button type="submit" class="submit-btn" id="submitBtn">Generate ConOps PDF</button>
+                <div class="spinner" id="spinner"></div>
+                <div class="gen-status" id="genStatus">Generating PDF... This may take a few seconds.</div>
+                <div class="gen-success" id="genSuccess">PDF generated and downloading!</div>
+            </div>
+        </form>
+
+        <div class="references">
+            <h3>Standards &amp; References</h3>
+            <ul>
+                <li><a href="https://www.law.cornell.edu/cfr/text/47/part-25" target="_blank">47 CFR Part 25</a> — Satellite Communications</li>
+                <li><a href="https://www.law.cornell.edu/cfr/text/47/25.122" target="_blank">47 CFR 25.122</a> — Streamlined Small Satellite Process</li>
+                <li><a href="https://www.law.cornell.edu/cfr/text/47/part-97" target="_blank">47 CFR Part 97</a> — Amateur Radio Service</li>
+                <li>ANSI/AIAA G-043A-2012 — Guide for Operational Concept Documents</li>
+                <li>IEEE 1362-1998 — Concept of Operations Document Guide</li>
+                <li><a href="https://www.cubesat.org/cubesatinfo" target="_blank">CubeSat Design Specification</a> Rev 14.1</li>
+                <li><a href="https://www.nasa.gov/content/cubesat-launch-initiative-resources" target="_blank">NASA CubeSat Launch Initiative</a></li>
+                <li><a href="https://www.iaru.org/reference/satellites/" target="_blank">IARU Satellite Frequency Coordination</a></li>
+                <li>FCC-22-74 — 5-Year Deorbit Rule (2022)</li>
+                <li><a href="https://www.itu.int/pub/R-REG-RR" target="_blank">ITU Radio Regulations</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Satellite ConOps Generator — Supports all satellite classes from CubeSats to GEO platforms</p>
+    </div>
+
+    <script>
+        function toggleSection(header) {
+            header.classList.toggle('collapsed');
+            header.nextElementSibling.classList.toggle('collapsed');
+        }
+
+        function updateClassInfo() {
+            var cls = document.getElementById('satClass').value;
+            var ff = document.getElementById('formFactorField');
+            ff.style.display = (cls === 'CubeSat') ? '' : 'none';
+        }
+
+        function updateOrbitInfo() {
+            var ot = document.getElementById('orbitType').value;
+            var altField = document.querySelector('input[name="orbit_altitude"]');
+            var incField = document.querySelector('input[name="orbit_inclination"]');
+            if (ot.includes('GEO') || ot.includes('Geostationary')) {
+                altField.value = '35786';
+                incField.value = '0';
+            } else if (ot.includes('ISS')) {
+                altField.value = '408';
+                incField.value = '51.6';
+            } else if (ot.includes('Molniya')) {
+                altField.value = '39750';
+                incField.value = '63.4';
+            } else if (ot.includes('MEO')) {
+                altField.value = '20200';
+                incField.value = '55';
+            }
+        }
+
+        /* ── Spinner bug fix ──
+           The form opens the PDF in a new tab (target="_blank").
+           We detect the form submission, show the spinner briefly,
+           then reset it after a short delay. The browser handles
+           the download in the new tab, so the main page stays usable. */
+        document.getElementById('conopsForm').addEventListener('submit', function(e) {
+            var btn = document.getElementById('submitBtn');
+            var spinner = document.getElementById('spinner');
+            var status = document.getElementById('genStatus');
+            var success = document.getElementById('genSuccess');
+
+            btn.disabled = true;
+            btn.textContent = 'Generating...';
+            spinner.style.display = 'block';
+            status.style.display = 'block';
+            success.style.display = 'none';
+
+            /* Re-enable after a generous timeout.
+               The form targets _blank, so the PDF opens/downloads
+               in a new tab — we just need to reset our UI. */
+            setTimeout(function() {
+                btn.disabled = false;
+                btn.textContent = 'Generate ConOps PDF';
+                spinner.style.display = 'none';
+                status.style.display = 'none';
+                success.style.display = 'block';
+                setTimeout(function() {
+                    success.style.display = 'none';
+                }, 5000);
+            }, 8000);
+        });
+
+        updateClassInfo();
+    </script>
+</body>
+</html>
