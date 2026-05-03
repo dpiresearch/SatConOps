@@ -164,7 +164,11 @@ PARALLEL_GROUPS = {
 def _parse_launch_date(date_str: str) -> datetime:
     """Parse various date formats into a datetime."""
     date_str = date_str.strip()
-    for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%m/%d/%Y", "%Y-%m"):
+    for fmt in (
+        "%Y-%m-%d", "%Y/%m/%d", "%m/%d/%Y", "%Y-%m",
+        "%b %Y", "%B %Y", "%b %d %Y", "%B %d %Y",
+        "%d %b %Y", "%d %B %Y",
+    ):
         try:
             return datetime.strptime(date_str, fmt)
         except ValueError:

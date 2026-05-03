@@ -1,4 +1,4 @@
-# Satellite ConOps Generator
+# Satellite Mission Planner
 
 A web application that generates FCC-compliant Concept of Operations (ConOps), mission timeline, and project planning PDF documents for satellite missions of any class — from CubeSats to large GEO communications platforms.
 

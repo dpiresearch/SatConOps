@@ -1,5 +1,5 @@
 """
-Satellite ConOps Generator — Web Application
+Satellite Mission Planner — Web Application
 Generates FCC-compliant Concept of Operations documents for all satellite types.
 """
 

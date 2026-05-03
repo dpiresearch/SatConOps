@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SatConOps Project Planner</title>
+    <title>Satellite Mission Planner</title>
     <style>
         :root {
             --navy: #1f2a44;
@@ -321,6 +321,10 @@
             background: #f9fbfd;
             min-height: 320px;
         }
+        .lane.drag-over {
+            border-color: var(--blue);
+            background: var(--soft-blue);
+        }
         .lane h3 {
             margin: 0;
             padding: 0.65rem 0.75rem;
@@ -333,6 +337,14 @@
             background: #fff;
             border: 1px solid var(--line);
             border-radius: 7px;
+            cursor: grab;
+        }
+        .task-card:active {
+            cursor: grabbing;
+        }
+        .task-card.dragging {
+            opacity: 0.55;
+            border-color: var(--blue);
         }
         .task-card strong {
             display: block;
@@ -441,7 +453,7 @@
 <body>
     <header class="topbar">
         <div class="brand">
-            <h1>SatConOps Project Planner</h1>
+            <h1>Satellite Mission Planner</h1>
             <span id="workspaceName">No active workspace</span>
         </div>
         <a href="/">ConOps Generator</a>
@@ -597,6 +609,7 @@
         let activeTab = "board";
         let taskFilter = "";
         let statusFilter = "All";
+        let draggedTaskIndex = null;
 
         const els = {
             form: document.getElementById("plannerForm"),
@@ -945,11 +958,11 @@
                 <div class="board">
                     ${statuses.map(status => {
                         const laneTasks = tasks.filter(task => task.status === status);
-                        return `<section class="lane">
+                        return `<section class="lane" data-drop-status="${escapeHtml(status)}">
                             <h3>${status} (${laneTasks.length})</h3>
                             ${laneTasks.map(task => {
                                 const index = workspace.plan.tasks.indexOf(task);
-                                return `<article class="task-card">
+                                return `<article class="task-card" draggable="true" data-task-index="${index}">
                                     <strong>${escapeHtml(task.name)}</strong>
                                     <small>${escapeHtml(task.phase)} | ${escapeHtml(task.start)} to ${escapeHtml(task.end)}</small>
                                     <div class="card-controls">
@@ -1171,6 +1184,23 @@
             renderAll();
         }
 
+        function moveTaskToStatus(index, status) {
+            const task = workspace?.plan?.tasks?.[index];
+            if (!task || !statuses.includes(status)) return;
+            task.status = status;
+            if (status === "Done") {
+                task.progress = 100;
+            } else if (status === "Not Started") {
+                task.progress = 0;
+            } else if (status === "In Progress" && Number(task.progress || 0) === 0) {
+                task.progress = 10;
+            }
+            draggedTaskIndex = null;
+            persist(false);
+            renderAll();
+            showMessage(`Moved "${task.name}" to ${status}.`, true);
+        }
+
         function updateWorkspaceValue(target) {
             const kind = target.dataset.kind;
             if (!kind) return;
@@ -1309,6 +1339,39 @@
         });
         els.body.addEventListener("click", event => {
             if (event.target.id === "addTaskBtn") addTask();
+        });
+        els.body.addEventListener("dragstart", event => {
+            const card = event.target.closest(".task-card");
+            if (!card) return;
+            draggedTaskIndex = Number(card.dataset.taskIndex);
+            card.classList.add("dragging");
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", String(draggedTaskIndex));
+        });
+        els.body.addEventListener("dragend", event => {
+            const card = event.target.closest(".task-card");
+            if (card) card.classList.remove("dragging");
+            document.querySelectorAll(".lane.drag-over").forEach(lane => lane.classList.remove("drag-over"));
+        });
+        els.body.addEventListener("dragover", event => {
+            const lane = event.target.closest(".lane");
+            if (!lane || draggedTaskIndex === null) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+            lane.classList.add("drag-over");
+        });
+        els.body.addEventListener("dragleave", event => {
+            const lane = event.target.closest(".lane");
+            if (!lane || lane.contains(event.relatedTarget)) return;
+            lane.classList.remove("drag-over");
+        });
+        els.body.addEventListener("drop", event => {
+            const lane = event.target.closest(".lane");
+            if (!lane) return;
+            event.preventDefault();
+            lane.classList.remove("drag-over");
+            const index = draggedTaskIndex ?? Number(event.dataTransfer.getData("text/plain"));
+            moveTaskToStatus(index, lane.dataset.dropStatus);
         });
 
         if (!loadMissionDraftFromMainPage()) {
