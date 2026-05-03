@@ -113,8 +113,54 @@
             padding: 0.8rem 1.2rem; margin-top: 0.5rem; border-radius: 0 4px 4px 0;
             font-size: 0.88rem; display: none;
         }
+        .narrative-panel {
+            background: var(--card); border-radius: 8px; padding: 1.5rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 1.5rem;
+        }
+        .narrative-panel h2 {
+            color: var(--primary); font-size: 1.15rem; margin-bottom: 0.5rem;
+        }
+        .narrative-panel p {
+            color: var(--text-light); font-size: 0.92rem; margin-bottom: 0.9rem;
+        }
+        .narrative-panel textarea {
+            width: 100%; min-height: 130px; resize: vertical;
+            border: 1px solid var(--border); border-radius: 6px;
+            padding: 0.8rem; font: inherit; line-height: 1.45;
+        }
+        .narrative-actions {
+            display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+            margin-top: 0.85rem;
+        }
+        .narrative-btn {
+            background: var(--primary); color: white; border: none; border-radius: 6px;
+            padding: 0.7rem 1rem; font-weight: 700; cursor: pointer;
+        }
+        .parse-status { color: var(--text-light); font-size: 0.9rem; }
+        .inference-list {
+            display: none; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;
+            margin-top: 0.9rem;
+        }
+        .inference-item {
+            border: 1px solid var(--border); border-radius: 6px; padding: 0.55rem;
+            background: #fafafa; font-size: 0.84rem;
+        }
+        .inference-item strong { display: block; color: var(--primary); font-size: 0.74rem; text-transform: uppercase; }
+        .qa-panel {
+            display: none; margin-top: 0.9rem; padding: 1rem;
+            border: 1px solid var(--border); border-radius: 8px; background: #fafafa;
+        }
+        .qa-panel h3 { color: var(--primary); font-size: 1rem; margin-bottom: 0.35rem; }
+        .qa-panel p { margin-bottom: 0.7rem; }
+        .qa-row { display: grid; grid-template-columns: 1fr auto; gap: 0.6rem; }
+        .qa-row input {
+            border: 1px solid var(--border); border-radius: 6px; padding: 0.65rem;
+            font: inherit;
+        }
         @media (max-width: 768px) {
             .section-body { grid-template-columns: 1fr; }
+            .inference-list { grid-template-columns: 1fr; }
+            .qa-row { grid-template-columns: 1fr; }
             .header h1 { font-size: 1.5rem; }
             .container { padding: 0 1rem; }
         }
@@ -127,6 +173,7 @@
         <div class="badges">
             <span class="badge">All Satellite Classes</span>
             <span class="badge">FCC Part 25 / Part 97</span>
+            <span class="badge"><a href="/planner" onclick="openPlannerWithCurrentMission(event)" style="color: white; text-decoration: none;">Project Planner App</a></span>
             <span class="badge">ANSI/AIAA G-043A-2012</span>
             <span class="badge">IEEE 1362-1998</span>
         </div>
@@ -138,6 +185,26 @@
             a professional ConOps PDF with all sections required for FCC filing — including diagrams, link budget
             analysis, power budget charts, tables, and regulatory cross-reference matrices. Supports CubeSats,
             SmallSats, medium satellites, large GEO platforms, and everything in between.
+        </div>
+
+        <div class="narrative-panel">
+            <h2>Start From a Mission Description</h2>
+            <p>Paste a short mission concept and the app will fill the structured fields it can infer. You can review and edit everything before generating documents or opening the planner.</p>
+            <textarea id="missionNarrative" placeholder="Example: HarborWatch-1 is a 120 kg small satellite from Northstar Orbital launching in 2029-Q2 to 550 km LEO at 53 degrees. It carries an AIS receiver for maritime domain awareness, has a 3 year lifetime, uses Part 25.114 licensing, and will be run by an 8 person experienced industry team with a moderate budget."></textarea>
+            <div class="narrative-actions">
+                <button type="button" class="narrative-btn" id="parseMissionBtn">Extract Mission Fields</button>
+                <span class="parse-status" id="parseStatus"></span>
+            </div>
+            <div class="inference-list" id="inferenceList"></div>
+            <div class="qa-panel" id="missionQaPanel">
+                <h3 id="missionQaTitle">More Information Needed</h3>
+                <p id="missionQaQuestion"></p>
+                <div class="qa-row">
+                    <input id="missionQaAnswer" type="text">
+                    <button type="button" class="narrative-btn" id="missionQaSubmit">Save Answer</button>
+                </div>
+                <span class="parse-status" id="missionQaStatus"></span>
+            </div>
         </div>
 
         <form id="conopsForm" action="/generate" method="POST" target="_blank">
@@ -471,18 +538,55 @@
                 </div>
             </div>
 
+            <!-- Project Planning -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>Project Coordination</span><span class="toggle">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="field">
+                        <label>Core Team Size</label>
+                        <input type="number" name="team_size" value="{{ mission.team_size }}" min="1" max="200" step="1" placeholder="e.g., 6">
+                    </div>
+                    <div class="field">
+                        <label>Team Experience</label>
+                        <select name="experience_level">
+                            <option value="university" {{ 'selected' if mission.experience_level == 'university' }}>University / Student Team</option>
+                            <option value="startup" {{ 'selected' if mission.experience_level == 'startup' }}>Startup / New Space Team</option>
+                            <option value="experienced_industry" {{ 'selected' if mission.experience_level == 'experienced_industry' }}>Experienced Industry Team</option>
+                            <option value="government_prime" {{ 'selected' if mission.experience_level == 'government_prime' }}>Government Prime / Large Program</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Budget Posture</label>
+                        <select name="budget_tier">
+                            <option value="shoestring" {{ 'selected' if mission.budget_tier == 'shoestring' }}>Shoestring</option>
+                            <option value="moderate" {{ 'selected' if mission.budget_tier == 'moderate' }}>Moderate</option>
+                            <option value="well_funded" {{ 'selected' if mission.budget_tier == 'well_funded' }}>Well-funded</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Planning Output</label>
+                        <input type="text" value="WBS, RACI, staffing, risks, meetings, budget" readonly>
+                    </div>
+                </div>
+            </div>
+
             <!-- Submit -->
             <div class="submit-section">
                 <div style="display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap;">
                     <button type="submit" class="submit-btn" id="submitBtn" onclick="setFormAction('/generate')">Generate ConOps PDF</button>
                     <button type="submit" class="submit-btn" id="timelineBtn" onclick="setFormAction('/timeline')" style="background: linear-gradient(135deg, #1a237e, #3949ab);">Generate Mission Timeline</button>
+                    <button type="submit" class="submit-btn" id="projectPlanBtn" onclick="setFormAction('/project_plan')" style="background: linear-gradient(135deg, #2e7d32, #1b5e20);">Generate Project Plan</button>
+                    <button type="button" class="submit-btn" onclick="openPlannerWithCurrentMission()" style="background: linear-gradient(135deg, #00695c, #004d40);">Open Planner App</button>
                 </div>
                 <div class="spinner" id="spinner"></div>
                 <div class="gen-status" id="genStatus">Generating PDF... This may take a few seconds.</div>
                 <div class="gen-success" id="genSuccess">PDF generated and downloading!</div>
                 <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-light);">
                     <b>ConOps PDF</b> — Full Concept of Operations document with diagrams, tables, and regulatory sections.<br>
-                    <b>Mission Timeline</b> — Project schedule with Gantt chart, launch vehicle analysis, and completion probability.
+                    <b>Mission Timeline</b> — Project schedule with Gantt chart, launch vehicle analysis, and completion probability.<br>
+                    <b>Project Plan</b> — Coordination plan with WBS, milestones, RACI, staffing, risks, meetings, and ROM budget.
                 </p>
             </div>
         </form>
@@ -543,15 +647,186 @@
             document.getElementById('conopsForm').action = action;
         }
 
+        function collectMissionFields() {
+            var form = document.getElementById('conopsForm');
+            var data = {};
+            Array.prototype.forEach.call(form.elements, function(el) {
+                if (el.name) {
+                    data[el.name] = el.value;
+                }
+            });
+            return data;
+        }
+
+        function openPlannerWithCurrentMission(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            var mission = collectMissionFields();
+            var narrative = document.getElementById('missionNarrative').value || '';
+            localStorage.setItem('satconopsMissionDraft', JSON.stringify({
+                mission: mission,
+                narrative: narrative,
+                saved_at: new Date().toISOString()
+            }));
+            window.location.href = '/planner';
+        }
+
+        var currentMissionQuestion = null;
+
+        function applyMissionFields(mission) {
+            var form = document.getElementById('conopsForm');
+            Object.keys(mission).forEach(function(key) {
+                var field = form.elements[key];
+                if (!field || mission[key] === '') {
+                    return;
+                }
+                field.value = mission[key];
+            });
+            updateClassInfo();
+        }
+
+        function renderInferences(extracted, warnings) {
+            var list = document.getElementById('inferenceList');
+            var items = [];
+            (extracted || []).slice(0, 12).forEach(function(item) {
+                items.push(
+                    '<div class="inference-item"><strong>' +
+                    item.label + '</strong>' + item.value +
+                    '<br><small>' + item.confidence + ' confidence</small></div>'
+                );
+            });
+            (warnings || []).forEach(function(warning) {
+                items.push(
+                    '<div class="inference-item"><strong>Review</strong>' +
+                    warning + '</div>'
+                );
+            });
+            list.innerHTML = items.join('');
+            list.style.display = items.length ? 'grid' : 'none';
+        }
+
+        function showMissionQuestion(intake) {
+            var panel = document.getElementById('missionQaPanel');
+            var question = document.getElementById('missionQaQuestion');
+            var answer = document.getElementById('missionQaAnswer');
+            var title = document.getElementById('missionQaTitle');
+            var status = document.getElementById('missionQaStatus');
+            if (!intake || intake.complete) {
+                currentMissionQuestion = null;
+                panel.style.display = 'block';
+                title.textContent = 'Mission Intake Complete';
+                question.textContent = 'All required fields for the workflow have been collected. Review the form below, then generate a document or open the planner.';
+                answer.style.display = 'none';
+                document.getElementById('missionQaSubmit').style.display = 'none';
+                status.textContent = '';
+                return;
+            }
+            currentMissionQuestion = intake.next_question;
+            panel.style.display = 'block';
+            title.textContent = 'More Information Needed (' + intake.missing.length + ' remaining)';
+            question.textContent = currentMissionQuestion.question;
+            answer.style.display = '';
+            answer.type = currentMissionQuestion.input_type || 'text';
+            answer.placeholder = currentMissionQuestion.placeholder || '';
+            answer.value = '';
+            document.getElementById('missionQaSubmit').style.display = '';
+            status.textContent = '';
+            answer.focus();
+        }
+
+        async function refreshMissionIntake() {
+            var response = await fetch('/api/mission_intake_status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mission: collectMissionFields() })
+            });
+            if (!response.ok) {
+                throw new Error('Intake check failed: ' + response.status);
+            }
+            var intake = await response.json();
+            showMissionQuestion(intake);
+            return intake;
+        }
+
+        async function submitMissionAnswer() {
+            if (!currentMissionQuestion) {
+                return;
+            }
+            var answer = document.getElementById('missionQaAnswer');
+            var status = document.getElementById('missionQaStatus');
+            var value = answer.value.trim();
+            if (!value) {
+                status.textContent = 'Please answer this field to continue.';
+                return;
+            }
+            var update = {};
+            update[currentMissionQuestion.field] = value;
+            applyMissionFields(update);
+            status.textContent = 'Saved.';
+            try {
+                await refreshMissionIntake();
+            } catch (err) {
+                status.textContent = err.message;
+            }
+        }
+
+        async function parseMissionNarrative() {
+            var narrative = document.getElementById('missionNarrative').value.trim();
+            var status = document.getElementById('parseStatus');
+            var btn = document.getElementById('parseMissionBtn');
+            if (!narrative) {
+                status.textContent = 'Paste a mission description first.';
+                return;
+            }
+            btn.disabled = true;
+            status.textContent = 'Extracting mission fields...';
+            try {
+                var response = await fetch('/api/parse_mission', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        narrative: narrative,
+                        current: collectMissionFields()
+                    })
+                });
+                if (!response.ok) {
+                    throw new Error('Mission extraction failed: ' + response.status);
+                }
+                var result = await response.json();
+                applyMissionFields(result.mission || {});
+                renderInferences(result.extracted, result.warnings);
+                showMissionQuestion(result.intake);
+                status.textContent = result.intake && result.intake.complete
+                    ? 'Fields filled. Required intake is complete.'
+                    : 'Fields filled. Answer the follow-up questions to complete intake.';
+            } catch (err) {
+                status.textContent = err.message;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        document.getElementById('parseMissionBtn').addEventListener('click', parseMissionNarrative);
+        document.getElementById('missionQaSubmit').addEventListener('click', submitMissionAnswer);
+        document.getElementById('missionQaAnswer').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                submitMissionAnswer();
+            }
+        });
+
         document.getElementById('conopsForm').addEventListener('submit', function(e) {
             var conopsBtn = document.getElementById('submitBtn');
             var timelineBtn = document.getElementById('timelineBtn');
+            var projectPlanBtn = document.getElementById('projectPlanBtn');
             var spinner = document.getElementById('spinner');
             var status = document.getElementById('genStatus');
             var success = document.getElementById('genSuccess');
 
             conopsBtn.disabled = true;
             timelineBtn.disabled = true;
+            projectPlanBtn.disabled = true;
             spinner.style.display = 'block';
             status.style.display = 'block';
             success.style.display = 'none';
@@ -559,6 +834,7 @@
             setTimeout(function() {
                 conopsBtn.disabled = false;
                 timelineBtn.disabled = false;
+                projectPlanBtn.disabled = false;
                 spinner.style.display = 'none';
                 status.style.display = 'none';
                 success.style.display = 'block';

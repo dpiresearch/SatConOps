@@ -1,6 +1,6 @@
 # Satellite ConOps Generator
 
-A web application that generates FCC-compliant Concept of Operations (ConOps) PDF documents for satellite missions of any class — from CubeSats to large GEO communications platforms.
+A web application that generates FCC-compliant Concept of Operations (ConOps), mission timeline, and project planning PDF documents for satellite missions of any class — from CubeSats to large GEO communications platforms.
 
 ## What It Does
 
@@ -13,6 +13,10 @@ Users fill in their satellite mission parameters through a web form, and the too
 - Page numbers, distribution markings, and figure/table captions throughout
 
 The generated document is structured to satisfy FCC filing requirements and follows aerospace industry ConOps standards.
+
+The tool can start from either structured fields or a plain-English mission description. The narrative parser infers mission name, organization, spacecraft class/mass, orbit, launch target, payload, licensing path, team size, and budget posture. If required workflow fields are still missing, the UI asks one follow-up question at a time until the mission intake is complete.
+
+The tool also includes an interactive project planning workspace at `/planner`. It turns the mission timeline into editable tasks, milestones, RACI assignments, risk registers, staffing profiles, budget estimates, meeting cadence, and dependencies. Teams can update ownership/status/progress in the browser, save the workspace locally, export/import JSON, and export the current plan to PDF.
 
 ## Supported Satellite Classes
 
@@ -86,8 +90,14 @@ Fill in the form and click **Generate ConOps PDF**. The PDF opens in a new tab.
 SatConOps/
   app.py              Flask web application (port 5002)
   conops_pdf.py       PDF generator (reportlab + matplotlib)
+  timeline_generator.py
+  timeline_pdf.py
+  mission_parser.py   Plain-English mission extraction helper
+  project_planner.py  WBS/RACI/staffing/risk/budget planner
+  project_plan_pdf.py Project plan PDF generator
   templates/
     index.html        Web UI with collapsible form sections
+    planner.html      Interactive project planning workspace
   output/             Generated PDFs (created automatically)
   venv/               Python virtual environment
 ```

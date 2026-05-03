@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SatConOps Project Planner</title>
+    <style>
+        :root {
+            --navy: #1f2a44;
+            --blue: #1565c0;
+            --green: #2e7d32;
+            --amber: #f57c00;
+            --red: #c62828;
+            --bg: #f4f6f8;
+            --surface: #ffffff;
+            --line: #d9e0e8;
+            --text: #202734;
+            --muted: #607086;
+            --soft-blue: #e8f1fb;
+            --soft-green: #e8f5e9;
+            --soft-amber: #fff3e0;
+            --soft-red: #ffebee;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            color: var(--text);
+            background: var(--bg);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.4;
+        }
+        button, input, select, textarea {
+            font: inherit;
+        }
+        button {
+            border: 0;
+            border-radius: 6px;
+            padding: 0.55rem 0.8rem;
+            cursor: pointer;
+            font-weight: 700;
+        }
+        button:disabled {
+            cursor: wait;
+            opacity: 0.62;
+        }
+        .topbar {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.25rem;
+            background: var(--navy);
+            color: #fff;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+        .brand {
+            display: flex;
+            align-items: baseline;
+            gap: 0.75rem;
+            min-width: 0;
+        }
+        .brand h1 {
+            margin: 0;
+            font-size: 1.05rem;
+            letter-spacing: 0;
+        }
+        .brand span {
+            color: #c9d7ea;
+            font-size: 0.86rem;
+            white-space: nowrap;
+        }
+        .topbar a {
+            color: #dce8f7;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+        .app-shell {
+            display: grid;
+            grid-template-columns: 330px minmax(0, 1fr);
+            min-height: calc(100vh - 60px);
+        }
+        .setup {
+            background: var(--surface);
+            border-right: 1px solid var(--line);
+            padding: 1rem;
+            overflow: auto;
+        }
+        .setup h2, .workspace h2 {
+            margin: 0 0 0.75rem;
+            font-size: 1rem;
+        }
+        .narrative-helper {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 0.75rem;
+            background: #f9fbfd;
+        }
+        .narrative-helper textarea {
+            width: 100%;
+            min-height: 130px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 0.55rem;
+            resize: vertical;
+        }
+        .narrative-helper small {
+            display: block;
+            color: var(--muted);
+            margin: 0.4rem 0 0.55rem;
+        }
+        .parse-summary {
+            display: grid;
+            gap: 0.35rem;
+            margin-top: 0.55rem;
+            color: var(--muted);
+            font-size: 0.82rem;
+        }
+        .parse-summary span {
+            display: block;
+            padding: 0.35rem;
+            border-radius: 5px;
+            background: #fff;
+            border: 1px solid var(--line);
+        }
+        .qa-card {
+            display: none;
+            margin-top: 0.65rem;
+            padding: 0.65rem;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #fff;
+        }
+        .qa-card strong {
+            display: block;
+            color: var(--navy);
+            margin-bottom: 0.35rem;
+        }
+        .qa-card input {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 0.5rem;
+            margin: 0.45rem 0;
+        }
+        .setup-grid {
+            display: grid;
+            gap: 0.7rem;
+        }
+        .field {
+            display: grid;
+            gap: 0.25rem;
+        }
+        .field label {
+            color: var(--muted);
+            font-size: 0.74rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .field input, .field select, .field textarea {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 0.5rem 0.6rem;
+            background: #fff;
+            color: var(--text);
+        }
+        .field textarea {
+            min-height: 70px;
+            resize: vertical;
+        }
+        .actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-top: 0.25rem;
+        }
+        .primary { background: var(--blue); color: #fff; }
+        .secondary { background: #e5ebf2; color: var(--navy); }
+        .success { background: var(--green); color: #fff; }
+        .warning { background: var(--amber); color: #fff; }
+        .danger { background: var(--red); color: #fff; }
+        .wide { grid-column: 1 / -1; }
+        .workspace {
+            min-width: 0;
+            padding: 1rem;
+        }
+        .status-line {
+            min-height: 24px;
+            margin-bottom: 0.75rem;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+        .status-line strong { color: var(--navy); }
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(130px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 0.85rem;
+        }
+        .metric {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 0.75rem;
+            min-height: 76px;
+        }
+        .metric label {
+            display: block;
+            color: var(--muted);
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .metric strong {
+            display: block;
+            margin-top: 0.25rem;
+            font-size: 1.25rem;
+        }
+        .tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-bottom: 0.75rem;
+        }
+        .tab {
+            background: #e7edf5;
+            color: var(--navy);
+            padding: 0.48rem 0.7rem;
+        }
+        .tab.active {
+            background: var(--navy);
+            color: #fff;
+        }
+        .toolbar {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.7rem;
+            flex-wrap: wrap;
+        }
+        .toolbar-left, .toolbar-right {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .toolbar input, .toolbar select {
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 0.45rem 0.55rem;
+            min-height: 36px;
+        }
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 0.85rem;
+            overflow: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+        th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #edf2f8;
+            color: var(--navy);
+            font-size: 0.72rem;
+            text-align: left;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        th, td {
+            border-bottom: 1px solid var(--line);
+            padding: 0.45rem;
+            vertical-align: top;
+        }
+        td input, td select, td textarea {
+            width: 100%;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            padding: 0.3rem;
+            background: transparent;
+        }
+        td input:focus, td select:focus, td textarea:focus {
+            border-color: var(--blue);
+            background: #fff;
+            outline: none;
+        }
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 74px;
+            padding: 0.18rem 0.45rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 800;
+        }
+        .status-not-started { background: #eceff1; color: #455a64; }
+        .status-in-progress { background: var(--soft-blue); color: var(--blue); }
+        .status-blocked { background: var(--soft-red); color: var(--red); }
+        .status-done { background: var(--soft-green); color: var(--green); }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(190px, 1fr));
+            gap: 0.75rem;
+        }
+        .lane {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #f9fbfd;
+            min-height: 320px;
+        }
+        .lane h3 {
+            margin: 0;
+            padding: 0.65rem 0.75rem;
+            border-bottom: 1px solid var(--line);
+            font-size: 0.86rem;
+        }
+        .task-card {
+            margin: 0.55rem;
+            padding: 0.65rem;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 7px;
+        }
+        .task-card strong {
+            display: block;
+            margin-bottom: 0.3rem;
+            font-size: 0.9rem;
+        }
+        .task-card small {
+            color: var(--muted);
+            display: block;
+            margin-bottom: 0.45rem;
+        }
+        .card-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.4rem;
+        }
+        .card-controls select, .card-controls input {
+            min-width: 0;
+            border: 1px solid var(--line);
+            border-radius: 5px;
+            padding: 0.35rem;
+        }
+        .timeline-row {
+            display: grid;
+            grid-template-columns: 230px minmax(360px, 1fr);
+            gap: 0.7rem;
+            padding: 0.45rem 0;
+            border-bottom: 1px solid var(--line);
+            align-items: center;
+        }
+        .timeline-name {
+            min-width: 0;
+            font-size: 0.84rem;
+        }
+        .timeline-name strong {
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .timeline-track {
+            position: relative;
+            height: 28px;
+            background: #edf2f8;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .timeline-bar {
+            position: absolute;
+            left: var(--left);
+            width: var(--width);
+            top: 5px;
+            bottom: 5px;
+            border-radius: 4px;
+            background: var(--blue);
+            min-width: 4px;
+        }
+        .timeline-bar.blocked { background: var(--red); }
+        .timeline-bar.done { background: var(--green); }
+        .timeline-bar.in-progress { background: var(--amber); }
+        .risk-high { color: var(--red); font-weight: 800; }
+        .risk-medium { color: var(--amber); font-weight: 800; }
+        .risk-low { color: var(--green); font-weight: 800; }
+        .fte-row {
+            display: grid;
+            grid-template-columns: 84px minmax(120px, 1fr) 70px;
+            gap: 0.6rem;
+            align-items: center;
+            padding: 0.35rem 0;
+            border-bottom: 1px solid var(--line);
+        }
+        .fte-track {
+            height: 18px;
+            background: #edf2f8;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .fte-bar {
+            height: 100%;
+            width: var(--width);
+            background: var(--green);
+        }
+        .empty {
+            padding: 2rem;
+            color: var(--muted);
+            text-align: center;
+        }
+        .hidden { display: none !important; }
+        #importFile { display: none; }
+        @media (max-width: 1100px) {
+            .app-shell { grid-template-columns: 1fr; }
+            .setup { border-right: 0; border-bottom: 1px solid var(--line); }
+            .metrics { grid-template-columns: repeat(3, minmax(130px, 1fr)); }
+            .board { grid-template-columns: repeat(2, minmax(190px, 1fr)); }
+        }
+        @media (max-width: 720px) {
+            .topbar { align-items: flex-start; height: auto; gap: 0.75rem; padding: 0.8rem 1rem; }
+            .brand { display: block; }
+            .brand span { display: block; margin-top: 0.2rem; white-space: normal; }
+            .metrics { grid-template-columns: 1fr 1fr; }
+            .board { grid-template-columns: 1fr; }
+            .timeline-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <h1>SatConOps Project Planner</h1>
+            <span id="workspaceName">No active workspace</span>
+        </div>
+        <a href="/">ConOps Generator</a>
+    </header>
+
+    <div class="app-shell">
+        <aside class="setup">
+            <h2>Mission Setup</h2>
+            <form id="plannerForm" class="setup-grid">
+                <div class="narrative-helper">
+                    <label for="plannerNarrative"><strong>Describe the Mission</strong></label>
+                    <small>Write the concept in plain English, then extract the setup fields from it.</small>
+                    <textarea id="plannerNarrative" placeholder="HarborWatch-1 is a 120 kg small satellite from Northstar Orbital launching in 2029-Q2 to 550 km LEO at 53 degrees. It carries an AIS receiver for maritime domain awareness and will be run by an 8 person experienced industry team."></textarea>
+                    <button class="secondary wide" type="button" id="parsePlannerBtn">Extract Setup Fields</button>
+                    <div id="parsePlannerStatus" class="parse-summary"></div>
+                    <div class="qa-card" id="plannerQaCard">
+                        <strong id="plannerQaTitle">More Information Needed</strong>
+                        <div id="plannerQaQuestion"></div>
+                        <input id="plannerQaAnswer" type="text">
+                        <button class="primary wide" type="button" id="plannerQaSubmit">Save Answer</button>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Mission Name</label>
+                    <input name="mission_name" value="{{ mission.mission_name }}" required placeholder="EarthWatch-1">
+                </div>
+                <div class="field">
+                    <label>Organization</label>
+                    <input name="organization" value="{{ mission.organization }}" required placeholder="Acme Space Corp">
+                </div>
+                <div class="field">
+                    <label>Satellite Class</label>
+                    <select name="satellite_class">
+                        <option>CubeSat</option>
+                        <option>Microsatellite</option>
+                        <option selected>Small Satellite</option>
+                        <option>Medium Satellite</option>
+                        <option>Large Satellite</option>
+                        <option>GEO Communications</option>
+                        <option>Science / Exploration</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Spacecraft Mass (kg)</label>
+                    <input name="spacecraft_mass" type="number" min="0.1" step="0.1" required placeholder="120">
+                </div>
+                <div class="field">
+                    <label>Mission Lifetime (years)</label>
+                    <input name="mission_lifetime" type="number" min="0.5" step="0.5" required placeholder="3">
+                </div>
+                <div class="field">
+                    <label>Target Launch</label>
+                    <input name="target_launch_date" required placeholder="2029-06 or 2029-Q2">
+                </div>
+                <div class="field">
+                    <label>Payload Type</label>
+                    <input name="payload_type" required placeholder="AIS Receiver">
+                </div>
+                <div class="field">
+                    <label>Payload Purpose</label>
+                    <input name="payload_purpose" placeholder="Maritime tracking">
+                </div>
+                <div class="field">
+                    <label>Orbit Type</label>
+                    <select name="orbit_type">
+                        <option>Sun-Synchronous (SSO)</option>
+                        <option>Low Earth Orbit (LEO)</option>
+                        <option>Polar</option>
+                        <option>Medium Earth Orbit (MEO)</option>
+                        <option>Geostationary (GEO)</option>
+                        <option>Molniya</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Altitude (km)</label>
+                    <input name="orbit_altitude" type="number" min="160" max="42000" required placeholder="550">
+                </div>
+                <div class="field">
+                    <label>Inclination (deg)</label>
+                    <input name="orbit_inclination" type="number" min="0" max="180" step="0.1" required placeholder="53">
+                </div>
+                <div class="field">
+                    <label>FCC License</label>
+                    <select name="fcc_license_type">
+                        <option>Part 25.122 (Streamlined Small Satellite)</option>
+                        <option selected>Part 25.114 (Standard Application)</option>
+                        <option>Part 97 (Amateur Radio)</option>
+                        <option>Part 5 (Experimental)</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Team Size</label>
+                    <input name="team_size" type="number" min="1" max="200" value="{{ mission.team_size }}">
+                </div>
+                <div class="field">
+                    <label>Team Experience</label>
+                    <select name="experience_level">
+                        <option value="university">University</option>
+                        <option value="startup">Startup</option>
+                        <option value="experienced_industry" selected>Experienced Industry</option>
+                        <option value="government_prime">Government Prime</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Budget Posture</label>
+                    <select name="budget_tier">
+                        <option value="shoestring">Shoestring</option>
+                        <option value="moderate" selected>Moderate</option>
+                        <option value="well_funded">Well-funded</option>
+                    </select>
+                </div>
+                <div class="actions">
+                    <button class="primary wide" type="submit" id="generateBtn">Generate Workspace</button>
+                    <button class="secondary" type="button" id="sampleBtn">Load Sample</button>
+                    <button class="secondary" type="button" id="loadBtn">Load Saved</button>
+                    <button class="secondary" type="button" id="importBtn">Import JSON</button>
+                    <button class="secondary" type="button" id="exportJsonBtn" disabled>Export JSON</button>
+                    <button class="success" type="button" id="saveBtn" disabled>Save</button>
+                    <button class="warning wide" type="button" id="pdfBtn" disabled>Export Current Plan PDF</button>
+                    <input id="importFile" type="file" accept="application/json">
+                </div>
+            </form>
+        </aside>
+
+        <main class="workspace">
+            <div id="statusLine" class="status-line">Generate a workspace from the mission setup to begin.</div>
+
+            <section id="metrics" class="metrics hidden"></section>
+
+            <nav id="tabs" class="tabs hidden"></nav>
+
+            <section id="workspaceBody" class="panel">
+                <div class="empty">No project workspace loaded.</div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const tabs = [
+            ["board", "Board"],
+            ["timeline", "Timeline"],
+            ["tasks", "Tasks"],
+            ["milestones", "Milestones"],
+            ["risks", "Risks"],
+            ["raci", "RACI"],
+            ["staffing", "Staffing"],
+            ["budget", "Budget"],
+            ["meetings", "Meetings"],
+        ];
+
+        const statuses = ["Not Started", "In Progress", "Blocked", "Done"];
+        let workspace = null;
+        let activeTab = "board";
+        let taskFilter = "";
+        let statusFilter = "All";
+
+        const els = {
+            form: document.getElementById("plannerForm"),
+            status: document.getElementById("statusLine"),
+            metrics: document.getElementById("metrics"),
+            tabs: document.getElementById("tabs"),
+            body: document.getElementById("workspaceBody"),
+            workspaceName: document.getElementById("workspaceName"),
+            generateBtn: document.getElementById("generateBtn"),
+            sampleBtn: document.getElementById("sampleBtn"),
+            plannerNarrative: document.getElementById("plannerNarrative"),
+            parsePlannerBtn: document.getElementById("parsePlannerBtn"),
+            parsePlannerStatus: document.getElementById("parsePlannerStatus"),
+            plannerQaCard: document.getElementById("plannerQaCard"),
+            plannerQaTitle: document.getElementById("plannerQaTitle"),
+            plannerQaQuestion: document.getElementById("plannerQaQuestion"),
+            plannerQaAnswer: document.getElementById("plannerQaAnswer"),
+            plannerQaSubmit: document.getElementById("plannerQaSubmit"),
+            saveBtn: document.getElementById("saveBtn"),
+            loadBtn: document.getElementById("loadBtn"),
+            exportJsonBtn: document.getElementById("exportJsonBtn"),
+            importBtn: document.getElementById("importBtn"),
+            importFile: document.getElementById("importFile"),
+            pdfBtn: document.getElementById("pdfBtn"),
+        };
+        let currentPlannerQuestion = null;
+
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#39;");
+        }
+
+        function collectMission() {
+            return Object.fromEntries(new FormData(els.form).entries());
+        }
+
+        function setFormValues(values) {
+            Object.entries(values).forEach(([key, value]) => {
+                const input = els.form.elements[key];
+                if (input) input.value = value;
+            });
+        }
+
+        function setBusy(isBusy, message) {
+            els.generateBtn.disabled = isBusy;
+            els.status.innerHTML = message || "";
+        }
+
+        function showMessage(message, strong = false) {
+            els.status.innerHTML = strong ? `<strong>${escapeHtml(message)}</strong>` : escapeHtml(message);
+        }
+
+        function sampleMission() {
+            els.plannerNarrative.value = "HarborWatch-1 is a 120 kg small satellite from Northstar Orbital launching in 2029-Q2 to 550 km LEO at 53 degrees. It carries an AIS receiver for maritime domain awareness, has a 3 year mission lifetime, uses Part 25.114 licensing, and will be run by an 8 person experienced industry team with a moderate budget.";
+            setFormValues({
+                mission_name: "HarborWatch-1",
+                organization: "Northstar Orbital",
+                satellite_class: "Small Satellite",
+                spacecraft_mass: "120",
+                mission_lifetime: "3",
+                target_launch_date: "2029-06",
+                payload_type: "AIS Receiver",
+                payload_purpose: "Maritime domain awareness",
+                orbit_type: "Low Earth Orbit (LEO)",
+                orbit_altitude: "550",
+                orbit_inclination: "53",
+                fcc_license_type: "Part 25.114 (Standard Application)",
+                team_size: "8",
+                experience_level: "experienced_industry",
+                budget_tier: "moderate",
+            });
+        }
+
+        function loadMissionDraftFromMainPage() {
+            const saved = localStorage.getItem("satconopsMissionDraft");
+            if (!saved) return false;
+            try {
+                const draft = JSON.parse(saved);
+                if (draft.mission) {
+                    setFormValues(draft.mission);
+                }
+                if (draft.narrative) {
+                    els.plannerNarrative.value = draft.narrative;
+                }
+                const name = draft.mission?.mission_name || "mission draft";
+                showMessage(`Loaded ${name} from the ConOps page. Generate the workspace when ready.`, true);
+                return true;
+            } catch (err) {
+                showMessage(`Could not load mission draft: ${err.message}`);
+                return false;
+            }
+        }
+
+        function renderParseSummary(result) {
+            const extracted = (result.extracted || []).slice(0, 8).map(item =>
+                `<span><strong>${escapeHtml(item.label)}:</strong> ${escapeHtml(item.value)}</span>`
+            );
+            const warnings = (result.warnings || []).map(item =>
+                `<span><strong>Review:</strong> ${escapeHtml(item)}</span>`
+            );
+            els.parsePlannerStatus.innerHTML = [...extracted, ...warnings].join("");
+        }
+
+        function showPlannerQuestion(intake) {
+            if (!intake || intake.complete) {
+                currentPlannerQuestion = null;
+                els.plannerQaCard.style.display = "block";
+                els.plannerQaTitle.textContent = "Mission Intake Complete";
+                els.plannerQaQuestion.textContent = "All required setup fields are ready. Generate the workspace when you are satisfied with the values below.";
+                els.plannerQaAnswer.style.display = "none";
+                els.plannerQaSubmit.style.display = "none";
+                return;
+            }
+            currentPlannerQuestion = intake.next_question;
+            els.plannerQaCard.style.display = "block";
+            els.plannerQaTitle.textContent = `More Information Needed (${intake.missing.length} remaining)`;
+            els.plannerQaQuestion.textContent = currentPlannerQuestion.question;
+            els.plannerQaAnswer.style.display = "";
+            els.plannerQaAnswer.type = currentPlannerQuestion.input_type || "text";
+            els.plannerQaAnswer.placeholder = currentPlannerQuestion.placeholder || "";
+            els.plannerQaAnswer.value = "";
+            els.plannerQaSubmit.style.display = "";
+            els.plannerQaAnswer.focus();
+        }
+
+        async function refreshPlannerIntake() {
+            const response = await fetch("/api/mission_intake_status", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mission: collectMission() }),
+            });
+            if (!response.ok) throw new Error(`Intake check returned ${response.status}`);
+            const intake = await response.json();
+            showPlannerQuestion(intake);
+            return intake;
+        }
+
+        async function submitPlannerAnswer() {
+            if (!currentPlannerQuestion) return;
+            const value = els.plannerQaAnswer.value.trim();
+            if (!value) {
+                els.plannerQaQuestion.textContent = `${currentPlannerQuestion.question} Please enter a value to continue.`;
+                return;
+            }
+            setFormValues({ [currentPlannerQuestion.field]: value });
+            try {
+                await refreshPlannerIntake();
+            } catch (err) {
+                els.plannerQaQuestion.textContent = err.message;
+            }
+        }
+
+        async function parsePlannerNarrative() {
+            const narrative = els.plannerNarrative.value.trim();
+            if (!narrative) {
+                els.parsePlannerStatus.innerHTML = "<span>Paste a mission description first.</span>";
+                return;
+            }
+            els.parsePlannerBtn.disabled = true;
+            els.parsePlannerStatus.innerHTML = "<span>Extracting setup fields...</span>";
+            try {
+                const response = await fetch("/api/parse_mission", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        narrative,
+                        current: collectMission(),
+                    }),
+                });
+                if (!response.ok) throw new Error(`Mission extraction returned ${response.status}`);
+                const result = await response.json();
+                setFormValues(result.mission || {});
+                renderParseSummary(result);
+                showPlannerQuestion(result.intake);
+            } catch (err) {
+                els.parsePlannerStatus.innerHTML = `<span>${escapeHtml(err.message)}</span>`;
+            } finally {
+                els.parsePlannerBtn.disabled = false;
+            }
+        }
+
+        async function generateWorkspace(event) {
+            event.preventDefault();
+            if (!els.form.reportValidity()) return;
+            setBusy(true, "Generating timeline, WBS, staffing, risks, and budget...");
+            try {
+                const response = await fetch("/api/project_plan", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ mission: collectMission() }),
+                });
+                if (!response.ok) throw new Error(`Planner API returned ${response.status}`);
+                workspace = await response.json();
+                activeTab = "board";
+                persist(false);
+                renderAll();
+                showMessage("Workspace generated. Edit the plan here, then save or export.", true);
+            } catch (err) {
+                showMessage(err.message);
+            } finally {
+                setBusy(false, els.status.innerHTML);
+            }
+        }
+
+        function persist(showSaved = true) {
+            if (!workspace) return;
+            localStorage.setItem("satconopsPlannerWorkspace", JSON.stringify(workspace));
+            if (showSaved) showMessage("Workspace saved in this browser.", true);
+        }
+
+        function loadSaved() {
+            const saved = localStorage.getItem("satconopsPlannerWorkspace");
+            if (!saved) {
+                showMessage("No saved workspace found in this browser.");
+                return;
+            }
+            workspace = JSON.parse(saved);
+            activeTab = "board";
+            renderAll();
+            showMessage("Saved workspace loaded.", true);
+        }
+
+        function formatMoney(value) {
+            const num = Number(value || 0);
+            if (num >= 1_000_000) return `$${(num / 1_000_000).toFixed(1)}M`;
+            if (num >= 1_000) return `$${Math.round(num / 1_000)}K`;
+            return `$${Math.round(num).toLocaleString()}`;
+        }
+
+        function totalBudget() {
+            const budget = workspace?.plan?.budget || [];
+            const explicit = budget.find(item => String(item.category).toUpperCase() === "TOTAL");
+            if (explicit) return Number(explicit.estimate_usd || 0);
+            return budget.reduce((sum, item) => sum + Number(item.estimate_usd || 0), 0);
+        }
+
+        function taskProgress() {
+            const tasks = workspace?.plan?.tasks || [];
+            if (!tasks.length) return 0;
+            return Math.round(tasks.reduce((sum, task) => sum + Number(task.progress || 0), 0) / tasks.length);
+        }
+
+        function openRisks() {
+            return (workspace?.plan?.risks || []).filter(risk => risk.status !== "Closed").length;
+        }
+
+        function blockedTasks() {
+            return (workspace?.plan?.tasks || []).filter(task => task.status === "Blocked").length;
+        }
+
+        function renderAll() {
+            if (!workspace) return;
+            els.metrics.classList.remove("hidden");
+            els.tabs.classList.remove("hidden");
+            els.saveBtn.disabled = false;
+            els.exportJsonBtn.disabled = false;
+            els.pdfBtn.disabled = false;
+            els.workspaceName.textContent = workspace.mission.mission_name || "Untitled mission";
+            renderMetrics();
+            renderTabs();
+            renderActiveTab();
+        }
+
+        function renderMetrics() {
+            const metadata = workspace.plan.metadata || {};
+            const timeline = workspace.timeline || {};
+            const tasks = workspace.plan.tasks || [];
+            els.metrics.innerHTML = [
+                ["Launch Target", timeline.target_launch_date || metadata.target_launch_date || "TBD"],
+                ["Completion Odds", `${metadata.probability_pct || timeline.probability_pct || 0}%`],
+                ["Plan Progress", `${taskProgress()}%`],
+                ["Tasks", `${tasks.length}`],
+                ["Blocked", `${blockedTasks()}`],
+                ["Budget ROM", formatMoney(totalBudget())],
+            ].map(([label, value]) => `
+                <div class="metric">
+                    <label>${label}</label>
+                    <strong>${escapeHtml(value)}</strong>
+                </div>
+            `).join("");
+        }
+
+        function renderTabs() {
+            els.tabs.innerHTML = tabs.map(([id, label]) => `
+                <button type="button" class="tab ${id === activeTab ? "active" : ""}" data-tab="${id}">
+                    ${label}
+                </button>
+            `).join("");
+        }
+
+        function statusClass(status) {
+            return `status-${String(status || "Not Started").toLowerCase().replaceAll(" ", "-")}`;
+        }
+
+        function statusSelect(kind, index, value) {
+            return `<select data-kind="${kind}" data-index="${index}" data-field="status">
+                ${statuses.map(status => `<option ${status === value ? "selected" : ""}>${status}</option>`).join("")}
+            </select>`;
+        }
+
+        function fieldInput(kind, index, field, value, type = "text") {
+            return `<input type="${type}" value="${escapeHtml(value)}" data-kind="${kind}" data-index="${index}" data-field="${field}">`;
+        }
+
+        function fieldSelect(kind, index, field, value, options) {
+            return `<select data-kind="${kind}" data-index="${index}" data-field="${field}">
+                ${options.map(option => `<option ${option === value ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+            </select>`;
+        }
+
+        function filteredTasks() {
+            let tasks = workspace.plan.tasks || [];
+            if (statusFilter !== "All") {
+                tasks = tasks.filter(task => task.status === statusFilter);
+            }
+            if (taskFilter.trim()) {
+                const q = taskFilter.trim().toLowerCase();
+                tasks = tasks.filter(task => [
+                    task.id, task.name, task.phase, task.owner, task.deliverable, task.notes,
+                ].join(" ").toLowerCase().includes(q));
+            }
+            return tasks;
+        }
+
+        function renderToolbar(extra = "") {
+            return `
+                <div class="toolbar">
+                    <div class="toolbar-left">
+                        <input id="taskSearch" placeholder="Search tasks" value="${escapeHtml(taskFilter)}">
+                        <select id="statusFilter">
+                            ${["All", ...statuses].map(status => `<option ${status === statusFilter ? "selected" : ""}>${status}</option>`).join("")}
+                        </select>
+                    </div>
+                    <div class="toolbar-right">${extra}</div>
+                </div>
+            `;
+        }
+
+        function renderBoard() {
+            const tasks = filteredTasks();
+            return renderToolbar(`<button class="secondary" type="button" id="addTaskBtn">Add Task</button>`) + `
+                <div class="board">
+                    ${statuses.map(status => {
+                        const laneTasks = tasks.filter(task => task.status === status);
+                        return `<section class="lane">
+                            <h3>${status} (${laneTasks.length})</h3>
+                            ${laneTasks.map(task => {
+                                const index = workspace.plan.tasks.indexOf(task);
+                                return `<article class="task-card">
+                                    <strong>${escapeHtml(task.name)}</strong>
+                                    <small>${escapeHtml(task.phase)} | ${escapeHtml(task.start)} to ${escapeHtml(task.end)}</small>
+                                    <div class="card-controls">
+                                        ${statusSelect("tasks", index, task.status)}
+                                        ${fieldInput("tasks", index, "owner", task.owner)}
+                                        <input type="range" min="0" max="100" value="${Number(task.progress || 0)}" data-kind="tasks" data-index="${index}" data-field="progress">
+                                        <span class="pill ${statusClass(task.status)}">${Number(task.progress || 0)}%</span>
+                                    </div>
+                                </article>`;
+                            }).join("") || `<div class="empty">No tasks</div>`}
+                        </section>`;
+                    }).join("")}
+                </div>
+            `;
+        }
+
+        function renderTasks() {
+            const tasks = filteredTasks();
+            return renderToolbar(`<button class="secondary" type="button" id="addTaskBtn">Add Task</button>`) + `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th><th>Task</th><th>Phase</th><th>Owner</th><th>Status</th>
+                            <th>Priority</th><th>Progress</th><th>Start</th><th>End</th><th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tasks.map(task => {
+                            const index = workspace.plan.tasks.indexOf(task);
+                            return `<tr>
+                                <td>${escapeHtml(task.id)}</td>
+                                <td>${fieldInput("tasks", index, "name", task.name)}</td>
+                                <td>${escapeHtml(task.phase)}</td>
+                                <td>${fieldInput("tasks", index, "owner", task.owner)}</td>
+                                <td>${statusSelect("tasks", index, task.status)}</td>
+                                <td>${fieldSelect("tasks", index, "priority", task.priority, ["Low", "Normal", "High", "Critical"])}</td>
+                                <td>${fieldInput("tasks", index, "progress", task.progress, "number")}</td>
+                                <td>${fieldInput("tasks", index, "start", task.start, "date")}</td>
+                                <td>${fieldInput("tasks", index, "end", task.end, "date")}</td>
+                                <td>${fieldInput("tasks", index, "notes", task.notes)}</td>
+                            </tr>`;
+                        }).join("")}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function dateMs(value) {
+            const parsed = Date.parse(value);
+            return Number.isFinite(parsed) ? parsed : null;
+        }
+
+        function renderTimeline() {
+            const tasks = filteredTasks().filter(task => dateMs(task.start) && dateMs(task.end));
+            if (!tasks.length) return renderToolbar() + `<div class="empty">No dated tasks available.</div>`;
+            const minDate = Math.min(...tasks.map(task => dateMs(task.start)));
+            const maxDate = Math.max(...tasks.map(task => dateMs(task.end)));
+            const span = Math.max(1, maxDate - minDate);
+            return renderToolbar() + tasks.map(task => {
+                const left = ((dateMs(task.start) - minDate) / span) * 100;
+                const width = Math.max(1.5, ((dateMs(task.end) - dateMs(task.start)) / span) * 100);
+                const cls = String(task.status || "").toLowerCase().replaceAll(" ", "-");
+                return `<div class="timeline-row">
+                    <div class="timeline-name">
+                        <strong>${escapeHtml(task.name)}</strong>
+                        <span>${escapeHtml(task.start)} to ${escapeHtml(task.end)} | ${escapeHtml(task.owner)}</span>
+                    </div>
+                    <div class="timeline-track">
+                        <div class="timeline-bar ${cls}" style="--left:${left}%; --width:${width}%"></div>
+                    </div>
+                </div>`;
+            }).join("");
+        }
+
+        function renderMilestones() {
+            const milestones = workspace.plan.milestones || [];
+            return `<table>
+                <thead><tr><th>Milestone</th><th>Date</th><th>Phase</th><th>Status</th><th>Success Criteria</th></tr></thead>
+                <tbody>${milestones.map((item, index) => `<tr>
+                    <td>${fieldInput("milestones", index, "name", item.name)}</td>
+                    <td>${fieldInput("milestones", index, "date", item.date, "date")}</td>
+                    <td>${escapeHtml(item.phase)}</td>
+                    <td>${fieldSelect("milestones", index, "status", item.status, ["Pending", "At Risk", "Complete"])}</td>
+                    <td>${fieldInput("milestones", index, "success_criteria", item.success_criteria)}</td>
+                </tr>`).join("")}</tbody>
+            </table>`;
+        }
+
+        function riskClass(value) {
+            const first = String(value || "M")[0].toUpperCase();
+            if (first === "H") return "risk-high";
+            if (first === "L") return "risk-low";
+            return "risk-medium";
+        }
+
+        function renderRisks() {
+            const risks = workspace.plan.risks || [];
+            return `<table>
+                <thead><tr><th>ID</th><th>Risk</th><th>Phase</th><th>L</th><th>I</th><th>Status</th><th>Owner</th><th>Mitigation</th></tr></thead>
+                <tbody>${risks.map((risk, index) => `<tr>
+                    <td>${escapeHtml(risk.id)}</td>
+                    <td>${fieldInput("risks", index, "description", risk.description)}</td>
+                    <td>${escapeHtml(risk.phase)}</td>
+                    <td class="${riskClass(risk.likelihood)}">${fieldSelect("risks", index, "likelihood", risk.likelihood, ["L", "M", "H"])}</td>
+                    <td class="${riskClass(risk.impact)}">${fieldSelect("risks", index, "impact", risk.impact, ["L", "M", "H"])}</td>
+                    <td>${fieldSelect("risks", index, "status", risk.status, ["Open", "Watching", "Mitigating", "Closed"])}</td>
+                    <td>${fieldInput("risks", index, "owner_role", risk.owner_role)}</td>
+                    <td>${fieldInput("risks", index, "mitigation", risk.mitigation)}</td>
+                </tr>`).join("")}</tbody>
+            </table>`;
+        }
+
+        function renderRaci() {
+            const raci = workspace.plan.raci || {};
+            const matrix = raci.matrix || {};
+            const roles = raci.roles || [];
+            return `<table>
+                <thead>
+                    <tr><th>Phase</th>${roles.map(role => `<th>${escapeHtml(role)}</th>`).join("")}</tr>
+                </thead>
+                <tbody>
+                    ${Object.entries(matrix).map(([phase, assignments]) => `<tr>
+                        <td><strong>${escapeHtml(phase)}</strong></td>
+                        ${roles.map(role => `<td>
+                            <select data-kind="raci" data-phase="${escapeHtml(phase)}" data-role="${escapeHtml(role)}">
+                                ${["", "R", "A", "C", "I"].map(value => `<option ${assignments[role] === value ? "selected" : ""}>${value}</option>`).join("")}
+                            </select>
+                        </td>`).join("")}
+                    </tr>`).join("")}
+                </tbody>
+            </table>`;
+        }
+
+        function renderStaffing() {
+            const staffing = workspace.plan.staffing_profile || [];
+            const peak = Math.max(1, ...staffing.map(item => Number(item.total_fte || 0)));
+            return staffing.map(item => {
+                const width = Math.max(2, (Number(item.total_fte || 0) / peak) * 100);
+                const roles = Object.entries(item.roles || {})
+                    .map(([role, fte]) => `${role}: ${fte}`)
+                    .join(", ");
+                return `<div class="fte-row">
+                    <strong>${escapeHtml(item.month)}</strong>
+                    <div class="fte-track" title="${escapeHtml(roles)}">
+                        <div class="fte-bar" style="--width:${width}%"></div>
+                    </div>
+                    <span>${Number(item.total_fte || 0).toFixed(1)} FTE</span>
+                </div>`;
+            }).join("") || `<div class="empty">No staffing profile available.</div>`;
+        }
+
+        function renderBudget() {
+            const budget = workspace.plan.budget || [];
+            const rows = budget.filter(item => String(item.category).toUpperCase() !== "TOTAL");
+            return `<table>
+                <thead><tr><th>Category</th><th>Estimate</th><th>Notes</th></tr></thead>
+                <tbody>
+                    ${rows.map((item, index) => {
+                        const trueIndex = budget.indexOf(item);
+                        return `<tr>
+                            <td>${escapeHtml(item.category)}</td>
+                            <td>${fieldInput("budget", trueIndex, "estimate_usd", item.estimate_usd, "number")}</td>
+                            <td>${fieldInput("budget", trueIndex, "notes", item.notes)}</td>
+                        </tr>`;
+                    }).join("")}
+                    <tr><td><strong>Total</strong></td><td><strong>${formatMoney(totalBudget())}</strong></td><td></td></tr>
+                </tbody>
+            </table>`;
+        }
+
+        function renderMeetings() {
+            const meetings = workspace.plan.meetings || [];
+            return `<table>
+                <thead><tr><th>Meeting</th><th>Frequency</th><th>Duration</th><th>Attendees</th><th>Purpose</th><th>Notes</th></tr></thead>
+                <tbody>${meetings.map((meeting, index) => `<tr>
+                    <td>${fieldInput("meetings", index, "name", meeting.name)}</td>
+                    <td>${fieldInput("meetings", index, "frequency", meeting.frequency)}</td>
+                    <td>${fieldInput("meetings", index, "duration_minutes", meeting.duration_minutes, "number")}</td>
+                    <td>${fieldInput("meetings", index, "attendees", Array.isArray(meeting.attendees) ? meeting.attendees.join(", ") : meeting.attendees)}</td>
+                    <td>${fieldInput("meetings", index, "purpose", meeting.purpose)}</td>
+                    <td>${fieldInput("meetings", index, "notes", meeting.notes || "")}</td>
+                </tr>`).join("")}</tbody>
+            </table>`;
+        }
+
+        function renderActiveTab() {
+            if (!workspace) return;
+            const renderers = {
+                board: renderBoard,
+                timeline: renderTimeline,
+                tasks: renderTasks,
+                milestones: renderMilestones,
+                risks: renderRisks,
+                raci: renderRaci,
+                staffing: renderStaffing,
+                budget: renderBudget,
+                meetings: renderMeetings,
+            };
+            els.body.innerHTML = renderers[activeTab]();
+        }
+
+        function addTask() {
+            const tasks = workspace.plan.tasks;
+            tasks.push({
+                id: `CUSTOM-${String(tasks.length + 1).padStart(3, "0")}`,
+                name: "New work package",
+                phase: "Project Management",
+                owner: "Project Manager",
+                status: "Not Started",
+                priority: "Normal",
+                progress: 0,
+                start: new Date().toISOString().slice(0, 10),
+                end: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+                deliverable: "",
+                duration_weeks: 2,
+                notes: "",
+            });
+            persist(false);
+            renderAll();
+        }
+
+        function updateWorkspaceValue(target) {
+            const kind = target.dataset.kind;
+            if (!kind) return;
+            if (kind === "raci") {
+                const phase = target.dataset.phase;
+                const role = target.dataset.role;
+                workspace.plan.raci.matrix[phase][role] = target.value;
+                persist(false);
+                renderMetrics();
+                return;
+            }
+            const index = Number(target.dataset.index);
+            const field = target.dataset.field;
+            const collection = workspace.plan[kind];
+            if (!collection || !collection[index]) return;
+            let value = target.value;
+            if (field === "progress" || field === "estimate_usd" || field === "duration_minutes") {
+                value = Number(value || 0);
+            }
+            if (kind === "meetings" && field === "attendees") {
+                value = String(value).split(",").map(item => item.trim()).filter(Boolean);
+            }
+            collection[index][field] = value;
+            if (kind === "tasks" && field === "status") {
+                if (value === "Done") collection[index].progress = 100;
+                if (value === "Not Started") collection[index].progress = 0;
+            }
+            if (kind === "tasks" && field === "progress") {
+                if (value >= 100) collection[index].status = "Done";
+                else if (value > 0 && collection[index].status === "Not Started") collection[index].status = "In Progress";
+            }
+            updateBudgetTotal();
+            persist(false);
+            renderMetrics();
+            if (["status", "progress", "estimate_usd"].includes(field)) renderActiveTab();
+        }
+
+        function updateBudgetTotal() {
+            const budget = workspace?.plan?.budget || [];
+            const total = budget.find(item => String(item.category).toUpperCase() === "TOTAL");
+            if (!total) return;
+            total.estimate_usd = budget
+                .filter(item => String(item.category).toUpperCase() !== "TOTAL")
+                .reduce((sum, item) => sum + Number(item.estimate_usd || 0), 0);
+        }
+
+        function exportJson() {
+            if (!workspace) return;
+            const blob = new Blob([JSON.stringify(workspace, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            const mission = workspace.mission.mission_name || "project";
+            a.href = url;
+            a.download = `${mission.replaceAll(" ", "_")}_planner.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function exportPdf() {
+            if (!workspace) return;
+            els.pdfBtn.disabled = true;
+            showMessage("Rendering current project plan PDF...");
+            try {
+                const response = await fetch("/api/project_plan_pdf", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(workspace),
+                });
+                if (!response.ok) throw new Error(`PDF export returned ${response.status}`);
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                const disposition = response.headers.get("Content-Disposition") || "";
+                const match = disposition.match(/filename=([^;]+)/);
+                a.download = match ? match[1].replaceAll('"', "") : "ProjectPlan.pdf";
+                a.href = url;
+                a.click();
+                URL.revokeObjectURL(url);
+                showMessage("PDF exported from the current workspace.", true);
+            } catch (err) {
+                showMessage(err.message);
+            } finally {
+                els.pdfBtn.disabled = false;
+            }
+        }
+
+        els.form.addEventListener("submit", generateWorkspace);
+        els.parsePlannerBtn.addEventListener("click", parsePlannerNarrative);
+        els.plannerQaSubmit.addEventListener("click", submitPlannerAnswer);
+        els.plannerQaAnswer.addEventListener("keydown", event => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                submitPlannerAnswer();
+            }
+        });
+        els.sampleBtn.addEventListener("click", sampleMission);
+        els.saveBtn.addEventListener("click", () => persist(true));
+        els.loadBtn.addEventListener("click", loadSaved);
+        els.exportJsonBtn.addEventListener("click", exportJson);
+        els.pdfBtn.addEventListener("click", exportPdf);
+        els.importBtn.addEventListener("click", () => els.importFile.click());
+        els.importFile.addEventListener("change", event => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                workspace = JSON.parse(reader.result);
+                activeTab = "board";
+                persist(false);
+                renderAll();
+                showMessage("Imported workspace loaded.", true);
+            };
+            reader.readAsText(file);
+        });
+        els.tabs.addEventListener("click", event => {
+            const tab = event.target.closest("[data-tab]");
+            if (!tab) return;
+            activeTab = tab.dataset.tab;
+            renderTabs();
+            renderActiveTab();
+        });
+        els.body.addEventListener("change", event => {
+            if (event.target.id === "statusFilter") {
+                statusFilter = event.target.value;
+                renderActiveTab();
+                return;
+            }
+            updateWorkspaceValue(event.target);
+        });
+        els.body.addEventListener("input", event => {
+            if (event.target.id === "taskSearch") {
+                taskFilter = event.target.value;
+                renderActiveTab();
+                return;
+            }
+        });
+        els.body.addEventListener("click", event => {
+            if (event.target.id === "addTaskBtn") addTask();
+        });
+
+        if (!loadMissionDraftFromMainPage()) {
+            sampleMission();
+        }
+    </script>
+</body>
+</html>
