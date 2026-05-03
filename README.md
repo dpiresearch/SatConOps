@@ -2,6 +2,8 @@
 
 A web application that generates FCC-compliant Concept of Operations (ConOps), mission timeline, and project planning PDF documents for satellite missions of any class — from CubeSats to large GEO communications platforms.
 
+It is currently deployed here: http://satconops-prod.eba-3mdk8ksd.us-west-2.elasticbeanstalk.com/
+
 ## What It Does
 
 Users fill in their satellite mission parameters through a web form, and the tool generates a professional ~23-page ConOps PDF containing:
